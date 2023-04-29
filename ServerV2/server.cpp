@@ -1,7 +1,8 @@
 #include "server.h"
 
 Server::Server(int port, std::string ipAddress)
-	:port(port), ipAddress(ipAddress), serverSocket(INVALID_SOCKET), info{ 0 }, infoLength(sizeof(info))
+	:port(port), ipAddress(ipAddress), serverSocket(INVALID_SOCKET), info{ 0 }, infoLength(sizeof(info)), 
+	 serverDataStoragePath("..\\..\\ClientData\\")
 {
 }
 
@@ -11,16 +12,21 @@ void Server::Init()
 	info.sin_port = htons(port);
 	info.sin_addr.s_addr = inet_addr(ipAddress.c_str());
 
+	int result = 0;
+
+	result = WSAStartup(MAKEWORD(2, 2), &wsa);
 	std::cout << "WSA init...\n";
-	assert(!(WSAStartup(MAKEWORD(2, 2), &wsa)) && "Couldn't init wsa");
+	assert(!result && "Couldn't init wsa");
 	std::cout << "WSA success!\n";
 
+	serverSocket = socket(AF_INET, SOCK_DGRAM, 0);
 	std::cout << "Creating socket...\n";
-	assert(!((serverSocket = socket(AF_INET, SOCK_DGRAM, 0)) == SOCKET_ERROR) && "Couldn't create socket");
+	assert(!(serverSocket == SOCKET_ERROR) && "Couldn't create socket");
 	std::cout << "Success!\n";
 
+	result = bind(serverSocket, (struct sockaddr*)&info, infoLength);
 	std::cout << "Bind socket...\n";
-	assert(!(bind(serverSocket, (struct sockaddr*)&info, infoLength)) && "Couldn't bind socket");
+	assert(!result && "Couldn't bind socket");
 	std::cout << "Socket binded!\n";
 
 	std::cout << "Server started at:" << inet_ntoa(info.sin_addr) << ":" << ntohs(info.sin_port) << '\n';
@@ -29,41 +35,61 @@ void Server::Init()
 void Server::Start()
 {
 	Init();
+	Receive(message);
+	std::cout << message << std::endl;;
 
 	for (;;)
 	{
-		Receive();
+		Receive(clientPath);
+		//std::cout << "Получено имя файла: " << clientPath << std::endl;
+		//Respond("Имя файла получено");
+		Receive(clientData);
+		//std::cout << "Получены данные: " << clientData << '\n';
+		//Respond("Данные получены");
 		Process();
-		Send();
+		//Respond("Файл создан, данные получены и записаны");
 	}
 }
 
-void Server::Receive()
+void Server::Receive(std::string& clientPacket)
 {
 	if ((receiveLength = recvfrom(serverSocket, buffer, SIZE, 0, (struct sockaddr*)&info, &infoLength)) == SOCKET_ERROR)
 	{
-		std::cout << "Receive() falied...\n" << WSAGetLastError() << '\n';
+		std::cout << "Receive() falied...\n";
+		std::cout << "Server closed!\n";
 		exit(EXIT_FAILURE);
 	}
+
+	clientPacket = buffer;
 }
+
+//void Server::Respond(const char* response)
+//{
+//	if ((sendto(serverSocket, response, (strlen(response)+1), 0, (struct sockaddr*)&info, infoLength)) == SOCKET_ERROR)
+//	{
+//		std::cout << "Send() falied...\n" << WSAGetLastError() << '\n';
+//		exit(EXIT_FAILURE);
+//	}
+//}
 
 void Server::Process()
 {
 	std::cout << "Packet from:" << inet_ntoa(info.sin_addr) << ":" << ntohs(info.sin_port) << '\n';
-	for (unsigned i = 0; i < receiveLength; ++i)
-	{
-		std::cout << buffer[i];
-	}
-	std::cout << '\n';
-}
+	std::string dataPath(serverDataStoragePath + clientPath);
+	writeInFile.open(dataPath, std::ofstream::app);
 
-void Server::Send()
-{
-	if ((sendto(serverSocket, buffer, receiveLength, 0, (struct sockaddr*)&info, infoLength)) == SOCKET_ERROR)
+	if (!(writeInFile.is_open()))
 	{
-		std::cout << "Send() falied...\n" << WSAGetLastError() << '\n';
-		exit(EXIT_FAILURE);
+		std::cout << "Ошибка открытия файла\n";
 	}
+	else
+	{
+		writeInFile << clientData <<"\n";
+		std::cout << "Данные получены и записаны в файл!";
+	}
+
+	writeInFile.close();
+	std::cout << '\n';
 }
 
 Server::~Server()

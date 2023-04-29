@@ -1,8 +1,9 @@
 #pragma once
 #include <cassert>
 #include <iostream>
-#include <thread>
+#include <fstream>
 #include <string>
+#include <thread>
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <WinSock2.h>
@@ -23,14 +24,19 @@ private:
 	int infoLength;
 	int receiveLength;
 
+	std::string clientPath;
+	std::string clientData;
+	std::string serverDataStoragePath;
+
+	std::ofstream writeInFile;
+
 	void Init();
-	void Receive();
+	void Receive(std::string &clientPacket);
+	//void Respond(const char* response);
 	void Process();
-	void Send();
 public:
 	Server(int, std::string);
 	~Server();
 
 	void Start();
-	//void Stop();
 };
