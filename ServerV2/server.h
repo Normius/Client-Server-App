@@ -31,8 +31,8 @@ private:
 	std::ofstream writeInFile;
 
 	void Init();
-	void Receive(std::string &clientPacket);
-	//void Respond(const char* response);
+	void Receive();
+	//void Respond();
 	void Process();
 public:
 	Server(int, std::string);

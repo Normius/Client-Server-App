@@ -2,7 +2,7 @@
 
 Server::Server(int port, std::string ipAddress)
 	:port(port), ipAddress(ipAddress), serverSocket(INVALID_SOCKET), info{ 0 }, infoLength(sizeof(info)), 
-	 serverDataStoragePath("..\\..\\ClientData\\")
+	 serverDataStoragePath("..\\ClientData\\")
 {
 }
 
@@ -35,61 +35,61 @@ void Server::Init()
 void Server::Start()
 {
 	Init();
-	Receive(message);
-	std::cout << message << std::endl;;
 
 	for (;;)
 	{
-		Receive(clientPath);
-		//std::cout << "Получено имя файла: " << clientPath << std::endl;
-		//Respond("Имя файла получено");
-		Receive(clientData);
-		//std::cout << "Получены данные: " << clientData << '\n';
-		//Respond("Данные получены");
+		Receive();
 		Process();
-		//Respond("Файл создан, данные получены и записаны");
 	}
 }
 
-void Server::Receive(std::string& clientPacket)
+void Server::Receive()
 {
-	if ((receiveLength = recvfrom(serverSocket, buffer, SIZE, 0, (struct sockaddr*)&info, &infoLength)) == SOCKET_ERROR)
+	receiveLength = recvfrom(serverSocket, buffer, SIZE, 0, (struct sockaddr*)&info, &infoLength);
+	if (receiveLength == SOCKET_ERROR)
 	{
 		std::cout << "Receive() falied...\n";
 		std::cout << "Server closed!\n";
 		exit(EXIT_FAILURE);
 	}
-
-	clientPacket = buffer;
 }
-
-//void Server::Respond(const char* response)
-//{
-//	if ((sendto(serverSocket, response, (strlen(response)+1), 0, (struct sockaddr*)&info, infoLength)) == SOCKET_ERROR)
-//	{
-//		std::cout << "Send() falied...\n" << WSAGetLastError() << '\n';
-//		exit(EXIT_FAILURE);
-//	}
-//}
 
 void Server::Process()
 {
 	std::cout << "Packet from:" << inet_ntoa(info.sin_addr) << ":" << ntohs(info.sin_port) << '\n';
-	std::string dataPath(serverDataStoragePath + clientPath);
-	writeInFile.open(dataPath, std::ofstream::app);
 
-	if (!(writeInFile.is_open()))
+	if (buffer[receiveLength - 1] == 'm') //message
 	{
-		std::cout << "Ошибка открытия файла\n";
-	}
-	else
-	{
-		writeInFile << clientData <<"\n";
-		std::cout << "Данные получены и записаны в файл!";
+		buffer[receiveLength - 1] = '\0';
+		message = buffer;
+		std::cout << message << ": " << inet_ntoa(info.sin_addr) << ":" << ntohs(info.sin_port) << '\n';
 	}
 
-	writeInFile.close();
-	std::cout << '\n';
+	if (buffer[receiveLength - 1] == 'p') //path
+	{
+		buffer[receiveLength - 1] = '\0';
+
+		clientPath = serverDataStoragePath + buffer;
+		writeInFile.open(clientPath, std::ofstream::app);
+	}
+
+	if (buffer[receiveLength - 1] == 'd') //data
+	{
+		buffer[receiveLength - 1] = '\0';
+		clientData = buffer;
+
+		if (!(writeInFile.is_open()))
+		{
+			std::cout << "Ошибка открытия файла\n";
+		}
+		else
+		{
+			writeInFile << clientData << "\n";
+			std::cout << "Данные получены и записаны в файл!";
+			writeInFile.close();
+			std::cout << '\n';
+		}
+	}
 }
 
 Server::~Server()
