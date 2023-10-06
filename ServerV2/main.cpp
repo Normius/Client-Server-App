@@ -10,9 +10,7 @@ void Exit(Server* server)
 		
 		std::cin >> consoleCommand;
 		if (consoleCommand == "exit" || consoleCommand == "Exit" || consoleCommand == "EXIT")
-		{
 			server->~Server();
-		}
 	}
 }
 
