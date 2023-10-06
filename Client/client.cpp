@@ -41,7 +41,7 @@ void ClientBackEnd::SetServerPort(std::string& port)
 
 void ClientBackEnd::Send(std::string& data)
 {
-	int result = sendto(clientSocket, data.c_str(), data.size(), 0, (struct sockaddr*)&info, infoLength);
+	int result = sendto(clientSocket, data.c_str(), static_cast<int>(data.size()), 0, (struct sockaddr*)&info, infoLength);
 	if (result == SOCKET_ERROR)
 	{
 		using namespace System::Windows::Forms;
