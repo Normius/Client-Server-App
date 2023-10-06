@@ -9,8 +9,6 @@
 
 
 ServerV2, ServerV2.sln - серверная часть.
-
-
 Client, Client.sln - клиентская часть.
 
 
